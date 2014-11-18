@@ -918,6 +918,7 @@ x[names(x) == "one"]
 ## 1 3
 
 x <- structure(as.list(1:1000000), names=as.character(1:1000000))
+#library("microbenchmark")
 microbenchmark(x[[10000]], x[[100000]], x[[1000000]], unit="ms") # index - O(1)
 microbenchmark(x[["10000"]], x[["100000"]], x[["1000000"]], unit="ms") # name - O(n)
 
@@ -997,3 +998,296 @@ test[["method"]]
 print.htest # inaccessible directly
 ## Error: object ’print.htest’ not found
 getS3method("print", "htest") # here it is
+
+
+####  Coumpound types - Factors, Matrices, Data Frames
+
+## Factors:
+
+factor(c("male", "female", "female", "male", "female"))
+# [1] male   female female male   female
+# Levels: female male
+
+str(factor(c(1, 3, 1, 2, 5, 2)))
+# Factor w/ 4 levels "1","2","3","5": 1 3 1 2 4 2
+
+f <- factor(c(1, 3, 1, 2, 5, 2))
+class(f)
+## [1] "factor"
+typeof(f)
+## [1] "integer"
+unclass(f)
+## [1] 1 3 1 2 4 2
+## attr(,"levels")
+## [1] "1" "2" "3" "5"
+
+attr(f, "levels")[as.integer(f)]
+## [1] "1" "3" "1" "2" "5" "2"
+as.character(f)
+## [1] "1" "3" "1" "2" "5" "2"
+as.integer(as.character(f)) # not the same as as.integer(f)
+## [1] 1 3 1 2 5 2
+
+
+test <- c(1L, 4L, 3L, 2L, 1L, 3L)
+# levels(·) is the same as attr(·, "levels").
+levels(test) <- c("one", "two", "three", "four")
+class(test) <- "factor"
+test
+# [1] one   four  three two   one   three
+# Levels: one two three four
+
+f <- factor(c(1, 3, 1, 2, 5, 2))
+is.factor(f)
+## [1] TRUE
+is.vector(f)
+## [1] FALSE
+is.atomic(f)
+## [1] TRUE
+is.integer(f)
+## [1] FALSE
+is.character(f)
+## [1] FALSE
+
+# order on factors:
+f <- factor(c("one", "three", "two", "one"), levels=c("one", "two", "three"), ordered=TRUE)
+sort(f)
+# [1] one   one   two   three
+# Levels: one < two < three
+which(f > "one")
+## [1] 2 3
+f[f > "two"] # not a lexicographic order here
+## [1] three
+## Levels: one < two < three
+max(f)
+## [1] three
+## Levels: one < two < three
+
+# Contingency tables for factors:
+table(factor(c("one", "three", "two", "one")))
+##
+#   one three   two
+#     2     1     1
+
+table(factor(c("male", "female", "male", "male", "female")),
+      factor(c("low", "low", "high", "high", "high")))
+
+(f <- factor(c(1, 2, 3, 5, 1), levels = 1:5))
+## [1] 1 2 3 5 1
+## Levels: 1 2 3 4 5
+nlevels(f) # length(levels(f))
+## [1] 5
+(f <- droplevels(f))
+## [1] 1 2 3 5 1
+## Levels: 1 2 3 5
+nlevels(f)
+## [1] 4
+
+# renaming levels:
+levels(f) <- c("one", "two", "three", "five")
+f
+# [1] one   two   three five  one
+# Levels: one two three five
+
+height <- c(164, 182, 173, 194, 159)
+gender <- c("m", "f", "m", "m", "f")
+split(height, gender)
+## $f
+## [1] 182 159
+##
+## $m
+## [1] 164 173 194
+lapply(split(height, gender), mean) # avg height in each group
+## $f
+## [1] 170.5
+##
+## $m
+## [1] 177
+
+height <- c(164, 182, 173, 194, 159)
+gender <- c("m", "f", "m", "m", "f")
+tapply(height, gender, mean)
+#     f     m
+# 170.5 177.0
+
+(x <- round(rnorm(10), 1))
+## [1] -0.6 -0.2 1.6 0.1 0.1 1.7 0.5 -1.3 -0.7 -0.4
+cut(x, c(-Inf, -1, 0, 1, Inf))
+#  [1] (-Inf,-1] (-1,0]    (-Inf,-1] (-1,0]    (0,1]     (-Inf,-1] (-Inf,-1] (-Inf,-1] (0,1]     (1, Inf]
+# Levels: (-Inf,-1] (-1,0] (0,1] (1, Inf]
+cut(x, c(-Inf, -1, 0, 1, Inf), labels=c("very_small", "small", "large", "very_large"))
+# [1] very_small small      very_small small      large      very_small very_small very_small large      very_large
+# Levels: very_small small large very_large
+
+## Matrices:
+
+x <- 1:6
+dim(x) <- c(2, 3) # or attr(x, 'dim') <- c(2, 3)
+x
+#      [,1] [,2] [,3]
+# [1,]    1    3    5
+# [2,]    2    4    6
+
+class(x) # vector + dim attr => implicit matrix class
+## [1] "matrix"
+is.matrix(x)
+## [1] TRUE
+is.numeric(x)
+## [1] TRUE
+
+# vector elements are read column-wise
+x <- 1:6
+dim(x) <- c(2, 3) # or attr(x, 'dim') <- c(2, 3)
+x
+dim(x) <- c(3, 2)
+x
+
+as.numeric(x) # drops the dim attribute
+## [1] 1 2 3 4 5 6
+
+# Matrices by default behave exactly the same as vectors:
+x <- matrix(1:6, nrow=2, ncol=3) # == structure(1:6, dim=c(2, 3))
+x^2
+x*c(-1,2)
+x*x
+
+matrix(letters[1:4], ncol=2) # nrow auto-guessed
+##      [,1] [,2]
+## [1,] "a" "c"
+## [2,] "b" "d"
+
+# matrices of other kinds of elements:
+structure(list(mean, sd, var, median), dim = c(2, 2))
+structure(list(1:5, c(1, 5.4)), dim = c(1, 2))
+
+## arrays:
+structure(1:12, dim = c(2, 3, 2))
+# , , 1
+#
+#      [,1] [,2] [,3]
+# [1,]    1    3    5
+# [2,]    2    4    6
+#
+# , , 2
+#
+#      [,1] [,2] [,3]
+# [1,]    7    9   11
+# [2,]    8   10   12
+?array
+
+(x <- matrix(1:6, nrow=2, dimnames=list(c("r1", "r2"), c("c1", "c2", "c3"))))
+#    c1 c2 c3
+# r1  1  3  5
+# r2  2  4  6
+dim(x)
+## [1] 2 3
+str(dimnames(x))
+## List of 2
+## $ : chr [1:2] "r1" "r2"
+## $ : chr [1:3] "c1" "c2" "c3"
+
+(x <- matrix(letters[1:6], nrow = 2))
+##      [,1] [,2] [,3]
+## [1,] "a" "c" "e"
+## [2,] "b" "d" "f"
+x[1, 2] # 1st row, 2nd column
+## [1] "c"
+x[1, ] # 1st row
+## [1] "a" "c" "e"
+x[1:2, 2:3] # 1st and 2nd row, 2nd and 3rd column [select block]
+#      [,1] [,2]
+# [1,] "c"  "e"
+# [2,] "d"  "f"
+
+(x <- matrix(letters[1:6], nrow=2,
+dimnames=list(c("r1", "r2"), c("c1", "c2", "c3"))))
+##    c1  c2  c3
+## r1 "a" "c" "e"
+## r2 "b" "d" "f"
+x[c("r2", "r1"), c("c3", "c1")]
+##    c3  c1
+## r2 "f" "b"
+## r1 "e" "a"
+
+(x <- matrix(letters[1:6], nrow=2))
+##     [,1] [,2] [,3]
+## [1,] "a" "c" "e"
+## [2,] "b" "d" "f"
+(y <- matrix(c(1, 3, 2, 1, 1, 1), byrow=TRUE, ncol=2))
+#      [,1] [,2]
+# [1,]    1    3
+# [2,]    2    1
+# [3,]    1    1
+x[y]
+## [1] "e" "b" "a"
+
+(a <- matrix(1:4, nrow = 2))
+(b <- matrix(c(1, -1, -1, 1), nrow = 2))
+# Matrix multiplication:
+a %*% b # compare with a*b
+
+# Adding new columns/rows:
+(x <- matrix(1:6, nrow=2))
+#      [,1] [,2] [,3]
+# [1,]    1    3    5
+# [2,]    2    4    6
+cbind(x, 1:2)
+#      [,1] [,2] [,3] [,4]
+# [1,]    1    3    5    1
+# [2,]    2    4    6    2
+rbind(x, 1:3)
+#      [,1] [,2] [,3]
+# [1,]    1    3    5
+# [2,]    2    4    6
+# [3,]    1    2    3
+rbind(1:5, 11:15)
+#      [,1] [,2] [,3] [,4] [,5]
+# [1,]    1    2    3    4    5
+# [2,]   11   12   13   14   15
+
+simplify2array(list(1, 2, 3)) # result = atomic vector
+## [1] 1 2 3
+simplify2array(list(1:2, 3:4, 5:6)) # result = matrix
+#      [,1] [,2] [,3]
+# [1,]    1    3    5
+# [2,]    2    4    6
+simplify2array(list(1, 2:3)) # cannot simplify
+## [[1]]
+## [1] 1
+##
+## [[2]]
+## [1] 2 3
+
+sapply(list(1:10, 11:20, 21:30), mean)
+## [1] 5.5 15.5 25.5
+sapply(list(1:10, 11:20, 21:30), range)
+#      [,1] [,2] [,3]
+# [1,]    1   11   21
+# [2,]   10   20   30
+
+(x <- matrix(1:6, nrow = 2))
+apply(x, 1, sum) # each row
+## [1] 9 12
+apply(x, 2, mean) # each column
+## [1] 1.5 3.5 5.5
+
+?rowSums
+?colSums
+?rowMeans
+?colMeans
+
+outer(c(TRUE, FALSE, NA), c(TRUE, FALSE, NA), "|")
+##      [,1] [,2] [,3]
+## [1,] TRUE TRUE  TRUE
+## [2,] TRUE FALSE NA
+## [3,] TRUE NA    NA
+outer(c("a", "b"), 1:3, paste, sep = "")
+##      [,1] [,2] [,3]
+## [1,] "a1" "a2" "a3"
+## [2,] "b1" "b2" "b3"
+
+## Other:
+# ?t, ?diag, ?upper.tri, ?lower.tri, ?isSymmetric,
+# ?maxCol, ?aperm, ?norm, ?dist, ?det, ?eigen, ?qr, ?svd, ?chol, ?kappa, ?solve, ?lsfit
+
+
