@@ -1290,4 +1290,181 @@ outer(c("a", "b"), 1:3, paste, sep = "")
 # ?t, ?diag, ?upper.tri, ?lower.tri, ?isSymmetric,
 # ?maxCol, ?aperm, ?norm, ?dist, ?det, ?eigen, ?qr, ?svd, ?chol, ?kappa, ?solve, ?lsfit
 
+## Data Frames
+# data frames are special kind of lists
+# - lists such that every list element has the same length
 
+data.frame(gender=c("m", "f", "m", "f"),
+           height=c(185, 158, 191, 174))
+# gender height
+# 1      m    185
+# 2      f    158
+# 3      m    191
+# 4      f    174
+
+df <- data.frame(gender=c("m", "f", "m", "f"),
+                 height=c(185, 158, 191, 174))
+class(df)
+## [1] "data.frame"
+typeof(df)
+## [1] "list"
+is.list(df)
+## [1] TRUE
+is.data.frame(df)
+## [1] TRUE
+str(unclass(df))
+## List of 2
+## $ gender: Factor w/ 2 levels "f","m": 2 1 2 1
+## $ height: num [1:4] 185 158 191 174
+## - attr(*, "row.names")= int [1:4] 1 2 3 4
+
+# Manual creation of data frame:
+df <- list(c("m", "f", "m", "f"),
+           c(185, 158, 191, 174))
+names(df) <- c("gender", "height")
+attr(df, "row.names") <- c("1", "2", "3", "4")
+class(df) <- "data.frame"
+df
+
+(x <- structure(list(
+  list(matrix(1:4, ncol=2),
+       matrix(11:14, ncol=2)
+  )
+),
+class="data.frame", names="c1", row.names=c("r1", "r2") 
+))
+
+(survey <- data.frame(
+  gender = c("m", "m", "f", "m", "f", "f"),
+  coffee = c(FALSE, TRUE, TRUE, FALSE, TRUE, FALSE),
+  time = c(23, 25, 31, 46, 24, 38),
+  weight = c(69, 71, 58, 98, 63, 41)
+))
+# gender coffee time weight
+# 1      m  FALSE   23     69
+# 2      m   TRUE   25     71
+# 3      f   TRUE   31     58
+# 4      m  FALSE   46     98
+# 5      f   TRUE   24     63
+# 6      f  FALSE   38     41
+
+survey$weight
+## [1] 69 71 58 98 63 41
+survey[["weight"]]
+## [1] 69 71 58 98 63 41
+survey[[4]]
+## [1] 69 71 58 98 63 41
+
+survey[c(1, 3)]
+# gender time
+# 1      m   23
+# 2      m   25
+# 3      f   31
+# 4      m   46
+# 5      f   24
+# 6      f   38
+
+attr(survey, "dim")
+## NULL
+dim(survey)
+## [1] 6 4
+
+survey[1, ] # 1st row
+
+survey[, 4] # == survey[[4]] != survey[4]
+
+survey[1:2, 3:4]
+# time weight
+# 1   23     69
+# 2   25     71
+
+as.matrix(survey)
+# automatic conversion to the broadest type:
+# gender coffee  time weight
+# [1,] "m"    "FALSE" "23" "69"  
+# [2,] "m"    " TRUE" "25" "71"  
+# [3,] "f"    " TRUE" "31" "58"  
+# [4,] "m"    "FALSE" "46" "98"  
+# [5,] "f"    " TRUE" "24" "63"  
+# [6,] "f"    "FALSE" "38" "41"
+
+# when data frame is created, character data is automatically converted to factor
+class(survey$gender)
+## [1] "factor"
+# the stringsAsFactors argument of data.frame() and stringsAsFactors option can change that
+
+row.names(survey) <- c("Frank", "Avishai", "Ella", "John", "Ella", "Elis")
+## Warning: non-unique value when setting ’row.names’: ’Ella’
+## Error: duplicate ’row.names’ are not allowed
+row.names(survey) <- c("Frank", "Avishai", "Ella", "John", "Nina", "Elis")
+
+survey["Ella", ]
+# gender coffee time weight
+# Ella      f   TRUE   31     58
+
+test <- data.frame(good.name=1:2, "1bad.name"=3:4)
+test # auto-fix
+# good.name X1bad.name
+# 1         1          3
+# 2         2          4
+
+survey[survey$gender == "m" & survey$weight > 70, ]
+# gender coffee time weight
+# Avishai      m   TRUE   25     71
+# John         m  FALSE   46     98
+subset(survey, gender == "m" & weight > 70)
+# gender coffee time weight
+# Avishai      m   TRUE   25     71
+# John         m  FALSE   46     98
+subset(survey, gender == "f", select = -weight)
+# gender coffee time
+# Ella      f   TRUE   31
+# Nina      f   TRUE   24
+# Elis      f  FALSE   38
+
+# see also: ?with, ?within, ?transform.
+
+cbind(survey, height = c(184, 159, 173, 162, 195, 178))
+# gender coffee time weight height
+# Frank        m  FALSE   23     69    184
+# Avishai      m   TRUE   25     71    159
+# Ella         f   TRUE   31     58    173
+# John         m  FALSE   46     98    162
+# Nina         f   TRUE   24     63    195
+# Elis         f  FALSE   38     41    178
+rbind(survey, data.frame(gender = "m", coffee = TRUE, time = 41, weight = 98,
+                         row.names = "Steinar"))
+
+sapply(survey, class) # class of each column (it's a list...)
+# gender    coffee      time    weight 
+# "factor" "logical" "numeric" "numeric" 
+tapply(survey$time, survey$gender, mean) # avg time / each gender
+
+# See also: ?aggregate, ?by, ?ave
+
+survey[order(survey$gender, survey$time), ]
+# gender coffee time weight
+# Nina         f   TRUE   24     63
+# Ella         f   TRUE   31     58
+# Elis         f  FALSE   38     41
+# Frank        m  FALSE   23     69
+# Avishai      m   TRUE   25     71
+# John         m  FALSE   46     98
+
+# Data frame processing packages:
+# Here is a list of “hot” data frame processing-related packages:
+# • data.table
+# • reshape2
+# • plyr2 and dplyr
+# • magrittr
+
+# Time Series:
+
+?ts
+
+t <- ts(1:10, frequency = 4, start=c(1959,2))
+class(t)
+typeof(t)
+is.vector(t)
+is.atomic(t)
+unclass(t)
