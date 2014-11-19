@@ -1468,3 +1468,135 @@ typeof(t)
 is.vector(t)
 is.atomic(t)
 unclass(t)
+
+####  Controlling program flow:
+
+# Conditional execution: if
+# Repetitive execution: for, while, repeat
+
+
+sgn <- function(x) {
+  stopifnot(is.numeric(x), length(x) == 1, is.finite(x))
+  if (x > 0)
+    cat("positive\n")
+  else if (x < 0)
+    cat("negative\n")
+  else
+    cat("zero\n")
+}
+
+# !
+if (NA) cat("!")
+# Błąd wif (NA) cat("!") : 
+#   brakuje wartości tam, gdzie wymagane jest TRUE/FALSE
+
+# careful - you cannot put if and else in different lines in console
+if (TRUE) print(TRUE)
+else print(FALSE)
+# BŁĄD: nieoczekiwane 'else' in "else"
+# but you can do this in body of a function
+
+# Conditions are lazy evaluated!
+FALSE || {cat("!"); TRUE}
+## !
+## [1] TRUE
+TRUE || {cat("!"); TRUE}
+## [1] TRUE
+
+# return - return given value and stop processing
+qs <- function(x) {
+  stopifnot(is.atomic(x), is.vector(x))
+  if (length(x) <= 1) # already sorted
+    return(x)
+  pivot <- sample(x, 1) # random element of x
+  c(qs(x[x<pivot]), x[x==pivot], qs(x[x>pivot]))
+}
+
+## ifelse - vectorized version
+x <- c(5, 3, 1, 2, 4)
+ifelse(x < 3, -x, x^2)
+## [1] 25 9 -1 -2 16
+ifelse(x > 3, NA, x)
+## [1] NA 3 1 2 NA
+
+x <- c(-1, 0, 1, 2)
+ifelse(x >= 0, sqrt(x), NA) # sqrt is evaluated on -1 anyway
+## Warning: NaNs produced
+## [1] NA 0.000000 1.000000 1.414214
+
+# while (logical_condition) expression
+sum_while <- function(x) {
+  x <- as.numeric(x) # coercion not possible => error
+  result <- 0
+  i <- 1
+  n <- length(x)
+  while (i <= n) { # logical_condition depends on i
+    result <- result + x[i]
+    i <- i + 1 # i changes here
+  }
+  result # return value
+}
+sum_while(1:5)
+## [1] 15
+sum_while(c(1, 2, NA, 4, 5))
+## [1] NA
+
+i <- 0
+while (TRUE) { # infinite loop?
+  j <- 0
+  while (TRUE) {
+    j <- j+1
+    if (j > i) break
+    print(c(i, j))
+  }
+  i <- i+1
+  if (i > 3) break
+}
+## [1] 1 1
+## [1] 2 1
+## [1] 2 2
+## [1] 3 1
+## [1] 3 2
+## [1] 3 3
+
+i <- 0
+while (i < 6) {
+  i <- i+1
+  if (i %% 2 == 0) next
+  print(i)
+}
+## [1] 1
+## [1] 3
+## [1] 5
+
+# repeat expression
+# is equivalent to
+# while (TRUE) expression
+
+# for (name in vector) expression
+
+sum_for2 <- function(x) {
+  x <- as.numeric(x) # coercion not possible => error
+  result <- 0
+  for (i in seq_along(x))
+    result <- result+x[i]
+  result # return value
+}
+sum_for2(1:5)
+
+seq_along(numeric(0))
+# integer(0)
+1:length(numeric(0))
+# [1] 1 0
+
+lapply_for <- function(x, f, ...) {
+  stopifnot(is.vector(x))
+  f <- match.fun(f) # see ?match.fun
+  result <- vector("list", length(x)) # preallocate
+  for (i in seq_along(x)) result[[i]] <- f(x[[i]], ...)
+  result
+}
+lapply_for(list(1:5, 2:6), "*", 2)
+
+
+
