@@ -1,0 +1,29 @@
+---
+title: "wsdm_homework1_kubicki"
+author: "Karol Kubicki"
+date: "24.11.2014"
+output: pdf_document
+---
+
+
+1.1) When machine learning algorithms are trained on larger data sets, they perform better. However, there is often a trade-off involved. Read the paper by Banko and Brill [2] and answer the question: what is the downside of training their algorithms on larger data sets? Think of and describe a scenario in which you would decide against using a large data set for training.
+
+The main
+
+
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+summary(cars)
+```
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
