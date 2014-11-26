@@ -1404,7 +1404,7 @@ survey["Ella", ]
 
 test <- data.frame(good.name=1:2, "1bad.name"=3:4)
 test # auto-fix
-# good.name X1bad.name
+#     good.name X1bad.name
 # 1         1          3
 # 2         2          4
 
@@ -1597,6 +1597,243 @@ lapply_for <- function(x, f, ...) {
   result
 }
 lapply_for(list(1:5, 2:6), "*", 2)
+
+
+####  String processing
+
+# R character vectors consist of character strings. Each string is a sequence of bytes.
+
+test <- "R programming 2014"
+charToRaw(test) # printed in HEX
+## [1] 52 20 70 72 6f 67 72 61 6d 6d 69 6e 67 20 32 30 31 34
+as.integer(charToRaw(test)) # now in DEC
+## [1] 82 32 112 114 111 103 114 97 109 109 105 110 103 32
+## [18] 52
+
+test <- "R programming 2014"
+rawToChar(rev(charToRaw(test)[3:13]))
+
+library("stringi") # we will be using this package extensively
+as.integer(stri_conv("ąśćżźółńę", "", "latin2", to_raw=TRUE)[[1]])
+## [1] 177 182 230 191 188 243 179 241 234
+as.integer(stri_conv("ąśćżźółńę", "", "cp1250", to_raw=TRUE)[[1]])
+## [1] 185 156 230 191 159 243 179 241 234
+
+x <- as.raw(192:207)
+stri_conv(x, "latin1", "")
+## [1] "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏ"
+stri_conv(x, "latin2", "")
+## [1] "ŔÁÂĂÄĹĆÇČÉĘËĚÍÎĎ"
+
+#Try to detect encoding:
+stri_enc_detect(test)
+
+stri_length("aą") # how many code points?
+## [1] 2
+stri_numbytes("aą") # how many bytes are used?
+## [1] 3
+charToRaw("aą") # bytes
+## [1] 61 c4 85
+stri_enc_toutf32("aą")[[1]] # 1 code point -> 1 integer
+## [1] 97 261
+
+# string normalizationL
+stri_enc_toutf32("\u0105")[[1]]
+## [1] 261
+stri_enc_toutf32("a\u0328")[[1]]
+## [1] 97 808
+stri_enc_toutf32(stri_trans_nfc("a\u0328"))[[1]]
+## [1] 261
+
+# Code points may also exhibit a set of Binary Properties. These include:
+# • ALPHABETIC – alphabetic character;
+# • ASCII_HEX_DIGIT – a character matching [0-9A-Fa-f];
+# • LOWERCASE ;
+# • UPPERCASE ;
+# • WHITE_SPACE – a space character or TAB or CR or LF or ZWSP or ZWNBSP; this is not the same as
+# General Category Z.
+# Note that a code point has only one General Category but may exhibit many binary properties.
+stri_extract_all_charclass(" \t\n\r", "\\p{Z}")
+## [[1]]
+## [1] " "
+stri_extract_all_charclass(" \t\n\r", "\\p{C}")
+## [[1]]
+## [1] "\t\n\r"
+stri_extract_all_charclass(" \t\n\r", "\\p{WHITE_SPACE}")
+## [[1]]
+## [1] " \t\n\r"
+
+rawToChar(as.raw(c(65, 66, 67, 0, 68, 69)))
+## Error: embedded nul in string: ’ABC\0DE’
+
+Sys.getlocale("LC_CTYPE")
+## [1] "pl_PL.UTF-8"
+
+Encoding("ąść")  # unknown == native
+## [1] "unknown"
+
+
+## Basic operations:
+
+stri_paste("advanced", "R")
+## [1] "advancedR"
+stri_paste("advanced", "R", sep = " ")
+## [1] "advanced R"
+stri_paste(c("advanced", "R"), collapse = "")
+## [1] "advancedR"
+stri_flatten(c("advanced", "R"))
+## [1] "advancedR"
+stri_paste(c("a", "b"), 1:2, sep = ",", collapse = ";")
+## [1] "a,1;b,2"
+"a" %stri+% "b"
+## [1] "ab"
+stri_dup("a", 1:5)
+## [1] "a" "aa" "aaa" "aaaa" "aaaaa"
+x <- "abc123ąęś"
+stri_sub(x, 1, 3)
+## [1] "abc"
+stri_sub(x, -3)
+## [1] "ąęś"
+stri_sub(x, -3, -2)
+## [1] "ąę"
+stri_sub(x, -3, length=1)
+## [1] "ą"
+stri_sub(x, -3) <- "AES"; x
+## [1] "abc123AES"
+stri_trim_both("\t abc\n ")
+## [1] "abc"
+cat(stri_pad_both(c("abc", "defghij"), 20), sep = "\n")
+#       abc         
+#     defghij 
+
+stri_rand_shuffle("abcdefghi")
+## [1] "fhdbgciea"
+stri_rand_strings(3, 5, "[a-z]")
+## [1] "olylr" "ocxgb" "iyxsq"
+
+sprintf("Test #%d of %d", 1:3, 3)
+## [1] "Test #1 of 3" "Test #2 of 3" "Test #3 of 3"
+sprintf("%-20s%.4f", "data science", pi)
+## [1] "data science      3.1416"
+sprintf("SELECT * FROM %s WHERE id IN (%s)", "myTable", stri_paste(sample(1:9, 3), collapse=", "))
+## [1] "SELECT * FROM myTable WHERE id IN (9, 6, 5)"
+
+stri_trans_general("ß", "Name")
+## [1] "\\N{LATIN SMALL LETTER SHARP S}"
+stri_trans_general("groß© żółć", "Latin-ASCII")
+## [1] "gross(C) zolc"
+
+
+## Locale dependent operations
+
+stri_cmp_lt("hladny", "chladny")
+## [1] FALSE
+stri_cmp_lt("hladny", "chladny", list(locale="sk_SK"))
+## [1] TRUE
+stri_cmp_eq("\u0105", "a\u0328") # normalization
+## [1] FALSE
+stri_sort(c("a", "b", "w", "z"))
+## [1] "a" "b" "w" "z"
+stri_sort(c("a", "b", "w", "z"), opts=list(locale="et_EE"))
+## [1] "a" "b" "z" "w"
+
+stri_extract_words("above-mentioned advanced, data; analysis!")
+## [[1]]
+## [1] "above" "mentioned" "advanced" "data" "analysis"
+stri_split_boundaries("above-mentioned advanced, data; analysis!")
+## [[1]]
+## [1] "above-" "mentioned " "advanced, " "data; " "analysis!"
+
+stri_trans_toupper("groß")
+## [1] "GROSS"
+stri_trans_totitle("have a nice day")
+## [1] "Have A Nice Day"
+
+# stringi currently gives access to 4 search engines:
+# • regex – regular expressions (t.b.d. later)
+# • fixed – very fast, locale-independent exact substring searching
+# • coll – Collator-based, locale-dependent pattern searching (for natural language processing, slow)
+# • charclass – search for code points from a specific character class (Binary properties, General cate-
+#                                                                         gories, etc.)
+# Basic search operations:
+# • detect
+# • count
+# • extract_all, extract_first, extract_last
+# • locate_all, locate_first, locate_last
+# • replace_all, replace_first, replace_last
+# • split
+
+stri_detect_fixed("science", "en")
+## [1] TRUE
+stri_detect_fixed(c("data", "science"), "en")
+## [1] FALSE TRUE
+stri_detect_fixed("science", c("en", "em", NA))
+## [1] TRUE FALSE NA
+stri_detect_fixed(c("data", "science"), c("at", "en"))
+## [1] TRUE TRUE
+
+stri_detect_fixed("a\u0328", "\u0105")
+## [1] FALSE
+stri_detect_coll("a\u0328", "\u0105")
+## [1] TRUE
+stri_detect_coll(c("GROSS", "groß"), "gross")
+## [1] FALSE FALSE
+stri_detect_coll(c("GROSS", "groß"), "gross", list(strength=2))
+## [1] TRUE FALSE
+stri_detect_coll(c("GROSS", "groß"), "gross", list(strength=1))
+## [1] TRUE TRUE
+
+stri_count_fixed("a1a2a3", "a")
+stri_count_charclass("a1b2ß3ą4","[a-z]")
+#?"stringi-search-charclass"
+
+stri_extract_all_charclass(c("123", "abc", "ąęś123abc"), "\\p{L}")
+## [[1]]
+## [1] NA
+##
+## [[2]]
+## [1] "abc"
+##
+## [[3]]
+## [1] "ąęś" "abc"
+stri_extract_all_charclass("ąęś123abc", "\\p{L}", merge = FALSE)
+## [[1]]
+## [1] "ą" "ę" "ś" "a" "b" "c"
+stri_extract_first_charclass(c("123", "abc", "12ąęś45"), "\\p{L}")
+## [1] NA "a" "ą"
+stri_locate_all_fixed(c("abababa", "ba"), "aba")
+stri_locate_last_fixed(c("abababa", "ba"), "aba")
+
+stri_replace_all_fixed("Python programming", "Python", "R")
+## [1] "R programming"
+stri_replace_all_fixed("Python", "Python", c("R", "C++"))
+# [1] "R"   "C++"
+stri_replace_all_charclass("data science ", "\\p{Z}", "")
+## [1] "datascience"
+
+stri_split_charclass("data science", "\\p{Z}")
+stri_split_fixed("beware! dogs?", c("!", "! ", "e"))
+
+choices <- c("fish", "burrito", "marmalade", "broccoli")
+match(c("burrito", "bur", "fish"), choices)
+## [1] 2 NA 1
+c("burrito", "bur", "fish") %in% choices
+## [1] TRUE FALSE TRUE
+choices <- c("fish", "burrito", "marmalade", "broccoli")
+pmatch("burrito", choices)
+## [1] 2
+pmatch("bur", choices)
+## [1] 2
+pmatch("b", choices) # ambiguous
+## [1] NA
+
+s <- c("nieżółty" , "nieżółtej", "żółtego", "zazółcił",
+       "zaczerwienił" , "żyły" , "żółty", "żółtemu", "zażółconemu")
+s[agrep("żółty" , s)]
+
+dst <- as.numeric(adist(s, "żółty"))/stri_length("żółty")
+names(dst) <- s
+dst
 
 
 
