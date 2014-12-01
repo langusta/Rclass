@@ -1836,4 +1836,242 @@ names(dst) <- s
 dst
 
 
+####  Regular Expressions
+
+stri_count_regex("abc123aAa", c("a", "12"))
+## [1] 3 1
+stri_count_regex("abc123aAa", c("a", "12"),
+                 list(case_insensitive=TRUE))
+## [1] 4 1
+
+# match '.' or '\'
+stri_count_regex("data...", "\\.")
+stri_count_regex("ala\\ma\\kota", "\\\\")
+
+stri_extract_all_regex("abdwzAWZ12! @","[adz]")
+stri_extract_all_regex("abdwzAWZ12! @","[\\p{Ll}]")
+
+stri_extract_all_regex("abdacaddadab", "ab|dd")
+## [[1]]
+## [1] "ab" "dd" "ab"
+stri_extract_all_regex("abdacaddadab", "a(b|d)d")
+## [[1]]
+## [1] "abd" "add"
+
+## adding comments to regexp:
+
+stri_extract_all_regex("abdacaddadab",
+                       "a(?# match 'a')" %stri+%
+                         "(b|d)(?# match 'b' or 'd')" %stri+%
+                         "d(?# match 'a')")
+## [[1]]
+## [1] "abd" "add"
+
+# Quantifiers allow us to repeat a subpattern a number of times.
+# • * – 0 or more times
+# • + – 1 or more times
+# • ? – 0 or 1 times
+# • {n,} – at least n times
+# • {,m} – at most m times
+# • {n,m} – at least n but no more than m times
+# For example, dog(s?|e|gy) matches:
+#   • dog
+# • doge
+# • dogs
+# • doggy
+# Note that alternatives are matched from left-to-right, first match is accepted and there are no retries:
+
+stri_extract_first_regex(c("dogs", "dogsy"), "dog(s|sy)")
+## [1] "dogs" "dogs"
+stri_extract_first_regex(c("dogs", "dogsy"), "dog(sy|s)")
+## [1] "dogs" "dogsy"
+stri_extract_all_regex("abaaaabaaabb", "ba*")
+## [[1]]
+
+## greedy vs non-greedy:
+stri_extract_all_regex("aa(bbb)(ccc)(ddd)eee", "\\(.+\\)")
+## [[1]]
+## [1] "(bbb)(ccc)(ddd)"
+stri_extract_all_regex("aa(bbb)(ccc)(ddd)eee", "\\(.+?\\)")
+## [[1]]
+## [1] "(bbb)" "(ccc)" "(ddd)"
+
+## be careful about non-greedy!:
+stri_extract_all_regex(
+  "<strong><em>aaa</em></strong><code>bbb</code><b>eee</a>",
+  "\\<([a-z]+)\\>.*?\\</\\1\\>")
+
+
+## Capturing groups:
+stri_match_all_regex("engine=V6, color=red", "(\\w+)=(\\w+)")
+# below: - non capturing group:
+stri_match_all_regex("engine=V6, color=red", "(?:\\w+)=(\\w+)")
+
+## begining and end of a string
+stri_detect_regex(c("aaaaab", "baaaab"), "^a+b")
+## [1] TRUE FALSE
+stri_detect_regex(c("abaaaaab", "baaaab"), "^ba+b$")
+## [1] FALSE TRUE
+
+# detect valid names:
+stri_detect_regex(c("helena123", "agh", "_jose_"),
+                  "^[a-zA-Z][a-zA-Z0-9_]{3,15}$")
+## [1] TRUE FALSE FALSE
+
+
+# \b - matches word boundary!
+stri_extract_all_regex("123ab643 daf eee!,ad,re4",
+                       "\\b[a-z]{2,}\\b")
+## [[1]]
+## [1] "daf" "eee" "ad"
+
+stri_replace_first_regex("   test   ","^\\p{White_space}*(.*?)\\p{White_space}*$", "$1")
+## [1] "test"
+
+# From ICU User Guide on Regexes:
+#   • (?=. . . ) – Look-ahead assertion
+# True if the parenthesized pattern matches at the current input position, but does not advance the input
+# position.
+#   • (?!. . . ) – Negative look-ahead assertion
+# True if the parenthesized pattern does not match at the current input position. Does not advance the input
+# position.
+#   • (?<=. . . ) Look-behind assertion
+# True if the parenthesized pattern matches text preceding the current input position, with the last character
+# of the match being the input character just before the current position. Does not alter the input position.
+# The length of possible strings matched by the look-behind pattern must not be unbounded (no * or + operators.)
+#   • (?<!. . . ) Negative Look-behind assertion
+# True if the parenthesized pattern does not match text preceding the current input position, with the last
+# character of the match being the input character just before the current position. Does not alter the input
+# position. The length of possible strings matched by the look-behind pattern must not be unbounded 
+# (no * or + operators.)
+
+# Match an email:
+stri_extract_all_regex("for more info, visit: www.rexamine.com!",
+                       "(https?://)?([\\da-z.-]+)\\.([a-z.]{2,6})([/\\w \\.-]*)*/?")
+## [[1]]
+## [1] "www.rexamine.com"
+
+# stringi uses ICU regex engine: userguide.icu-project.org/strings/regexp
+# R base uses: TRE or PCRE, R base functions: grep(), grepl(), regexpr(), gregexpr(), sub(), gsub(), gregexpr().
+
+####  Date and time
+
+# There are 3 compound types to represent date and/or time:
+#   • Date
+#   • POSIXct
+#   • POSIXlt
+
+(sysDate <- Sys.Date())
+## [1] "2014-08-10"
+(systime <- Sys.time())
+## [1] "2014-08-10 22:37:27 CEST"
+
+class(sysDate)
+## [1] "Date"
+typeof(sysDate)
+## [1] "double"
+unclass(sysDate)
+## [1] 16292
+
+unclass(as.Date("1970-01-01"))
+## [1] 0
+unclass(as.Date("1939-09-01"))
+## [1] -11080
+unclass(as.Date("1970/12/31"))
+## [1] 364
+unclass(as.Date("2014"))
+## Error: character string is not in a standard unambiguous format
+unclass(as.Date("2012-02-29"))
+## [1] 15399
+unclass(as.Date("2011-02-29"))
+## Error: character string is not in a standard unambiguous format
+
+class(systime)
+## [1] "POSIXct" "POSIXt"
+typeof(systime)
+## [1] "double"
+unclass(systime)
+## [1] 1407703047
+print(unclass(systime), digits = 22)
+## [1] 1407703047.030994176865
+
+as.POSIXct("2014-12-31 23:59:59")
+## [1] "2014-12-31 23:59:59 CET"
+as.POSIXct("2014-12-31")
+## [1] "2014-12-31 CET"
+as.POSIXct("1970-01-01 00:00:00")
+## [1] "1970-01-01 CET"
+unclass(as.POSIXct("1970-01-01 00:00:00"))
+## [1] -3600
+## attr(,"tzone")
+## [1] ""
+structure(1e-05, class = c("POSIXct", "POSIXt"), tzone = "UTC")
+## [1] "1970-01-01 00:00:00 UTC"
+
+as.POSIXlt(systime)
+## [1] "2014-08-10 22:37:27 CEST"
+class(as.POSIXlt(systime))
+## [1] "POSIXlt" "POSIXt"
+typeof(as.POSIXlt(systime))
+## [1] "list"
+str(unclass(as.POSIXlt(systime)))
+## List of 11
+## $ sec : num 27
+## $ min : int 37
+## $ hour : int 22
+## $ mday : int 10
+## $ mon : int 7
+## $ year : int 114
+## $ wday : int 0
+## $ yday : int 221
+## $ isdst : int 1
+## $ zone : chr "CEST"
+## $ gmtoff: int 7200
+## - attr(*, "tzone")= chr [1:3] "" "CET" "CEST"
+
+strptime("1970-01-01 00:00:00", "%Y-%m-%d %H:%M:%S", tz="UTC")
+## [1] "1970-01-01 UTC"
+unclass(as.POSIXct(
+  strptime("1970-01-01 00:00:00", "%Y-%m-%d %H:%M:%S", tz="UTC")))
+## [1] 0
+## attr(,"tzone")
+## [1] "UTC"
+strptime("01:43:12", "%H:%M")
+## [1] "2014-08-11 01:43:00 CEST"
+strftime(systime, "%x %X")
+## [1] "10.08.2014 22:37:27"
+
+oldloc <- Sys.getlocale("LC_TIME")
+strftime(systime, "%x %X (%A, %B)")
+## [1] "10.08.2014 22:37:27 (niedziela, sierpień)"
+
+Sys.setlocale("LC_TIME", "en_US.UTF8")
+## [1] "en_US.UTF8"
+strftime(systime, "%x %X (%A, %B)")
+## [1] "08/10/2014 10:37:27 PM (Sunday, August)"
+Sys.setlocale("LC_TIME", "de_DE.UTF8")
+## [1] "de_DE.UTF8"
+strftime(systime, "%x %X (%A, %B)")
+## [1] "10.08.2014 22:37:27 (Sonntag, August)"
+Sys.setlocale("LC_TIME", oldloc)
+## [1] "pl_PL.UTF-8"
+
+weekdays(systime)
+## [1] "niedziela"
+months(systime)
+## [1] "sierpień"
+quarters(systime)
+## [1] "Q3"
+
+sysDate - as.Date("2014-01-01")
+unclass(sysDate - as.Date("2014-01-01"))
+
+str(sysDate - as.Date("2014-01-01"))
+## Class 'difftime' atomic [1:1] 221
+## ..- attr(*, "units")= chr "days"
+seq(as.Date("2014-01-01"), sysDate, length.out = 4)
+## [1] "2014-01-01" "2014-03-15" "2014-05-28" "2014-08-10"
+# See also: quantile(), cut(), round(), hist(), . . . .
+
+
 
