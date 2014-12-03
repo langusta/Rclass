@@ -283,27 +283,56 @@ findemails(c("a@b@c", "Send comments to Grzegorz.Urlich@math.sk","ooo@e13.com, w
 
 ## ---- Documentation ----
 
-# ... TO DO ...
-
+# DESCRIPTION
+# scrabble returns top n words with respect to number of points they represent
+#
+# ARGUMENTS
+# x - named integer vector giving how many points may be obtained by using corresponding letters,
+# n - number of words to return, integer,
+# dict - set of possible words
+#
+# RETURN VALUE
+# a character vector with top n (or less) words
 
 
 ## ---- Function ----
 
-# ... TO DO ...
+scrabble <- function(x, n, dict){
+   stopifnot(!is.null(names(x)), is.numeric(x))
+   stopifnot( all( x==as.integer(x) ) )
+   stopifnot( n==as.integer(n) , n>0, length(n)==1)
+   stopifnot( is.character(dict) )
+
+   points<-unlist(lapply(strsplit(stri_replace_all_fixed(dict,names(x), x, vectorize_all = FALSE),""),
+         function(x) sum(as.numeric(x)) ))
 
 
+   n<-min(n, length(dict))
+
+   dict<-dict[order(-points)]
+   dict[1:n]
+
+}
 
 ## ---- Examples ----
 
-# ... TO DO ...
+library(testthat)
+expect_error(scrabble(c(1,2),3,c("ab")))
+expect_error(scrabble(c(1,2),c(1,2),c("ab")))
+expect_error(scrabble(c(1,2),3,1))
+x<-       c( 1,   2,   2,   3,   1,  4)
+names(x)<-c("a", "b", "c", "d", "e", "f")
+dict<- c("ab", "bc", "cd", "de", "ef")
+expect_equivalent(scrabble(x,1,dict), c("cd"))
+expect_equivalent(scrabble(x,3,dict), c("cd", "ef", "bc"))
+dict<- c("ab", "bc", "cd", "de", "ef", "bad")
+expect_equivalent(scrabble(x,3,dict), c("bad","cd", "ef"))
 
-
-
-
-
-
-
-
+# exemplary calls
+x<-       c( 1,   2,   2,   3,   1,  4)
+names(x)<-c("a", "b", "c", "d", "e", "f")
+dict<- c("ab", "bc", "cd", "de", "ef")
+(scrabble(x,3,dict))
 
 ## ------------------------ Exercise 03.05 ----------------------------
 
