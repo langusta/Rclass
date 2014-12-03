@@ -2,7 +2,7 @@
 ## Advanced Data Analysis Software Development with R - Batch 1
 ## Homework 3
 ##
-## Student:       YourSurnameHere YourNameHere
+## Student:       Kubicki Karol
 ## - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
