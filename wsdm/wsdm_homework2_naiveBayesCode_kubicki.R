@@ -31,6 +31,6 @@ readFilesFromPath <- function(path){
   body <- character(length(fnames_test))
   for(k in seq_along(fnames_test)){
       names[k]<- stri_extract_first_regex(fnames_test[k], "[01-9_]+(?=\\.txt)")
-      
+      sprawdzam ssh
   }
 }
