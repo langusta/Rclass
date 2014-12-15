@@ -2110,3 +2110,11 @@ file.access("commands.R",4)
 ?download.file
 
 list.files("~/Research/Classes/Rprogramming/", pattern = "\\.R", recursive = TRUE)
+
+sink("/tmp/output.txt")
+print(1:10)
+sink() # revert changes
+readLines("/tmp/output.txt")
+
+
+

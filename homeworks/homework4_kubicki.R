@@ -2,7 +2,7 @@
 ## Advanced Data Analysis Software Development with R - Batch 1
 ## Homework 4
 ##
-## Student:       YourSurnameHere YourNameHere
+## Student:       Kubicki Karol
 ## - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -24,73 +24,160 @@
 ## ---- Documentation ----
 
 # DESCRIPTION
-# ... write at least one paragraph about what the function does ...
+# CSVToCSV2 converts csv file with file field separator "," and decimal separator "."
+# into a csv file with later separato ";" and former separator ",".
 #
 # ARGUMENTS
-# ... document each of the function's arguments ...
+# infname - single string, path to input file
+# outfname - single string, path to output file
 #
 # RETURN VALUE
-# ... describe what kind of object the function returns ...
+# function returns invisible(NULL)
 
 ## ---- Function ----
 
-# ... in this block, only functions' definitions are allowed,
-# e.g. something like:
-# fname1 <- function(....) { .... }
-#
-# Please document your code extensively.
-#
-# If you develop more than one solution to this exercise,
-# put them all here, e.g. something like:
-# fname2 <- function(....) { .... }
-# fname3 <- function(....) { .... }
-# ...
+CSVToCSV2 <- function(infname, outfname){
+   library(stringi)
+   stopifnot(length(infname) == 1, length(outfname) == 1)
+   stopifnot(is.character(infname), is.character(outfname))
+   stopifnot(file.exists(infname))
+
+   if (file.exists(outfname)) warning("CSVToCSV2: Output file will be overwritten!")
+
+   input <- file(infname, open="r")
+   output <- file(outfname, open="w")
+   while (length(x <- readLines(input, n=1)) > 0){
+      parts<-stri_split_fixed(x,'"')[[1]]
+      # every second element of parts needs to be changed
+
+      parts[seq(from=1, to= length(parts), by =2)] <- stri_replace_all_fixed(parts[seq(from=beg, to= length(parts), by =2)], ",", ";")
+      parts[seq(from=1, to= length(parts), by =2)] <- stri_replace_all_fixed(parts[seq(from=beg, to= length(parts), by =2)], ".", ",")
+
+      writeLines(paste(parts,collapse = '"'), output)
+
+   }
+   close(input)
+   close(output)
+
+   invisible(NULL)
+}
 
 ## ---- Examples ----
 
-# Write at least 10 testthat tests here.
-#
+library(testthat)
+expect_error(CSVToCSV2(11,12)) # input file does not exist!
+
+file <- tempfile()
+write.csv(1:10,file = file)
+file2 <- tempfile()
+file.create(file2)
+expect_warning(CSVToCSV2(file,file2),"CSVToCSV2: Output file will be overwritten!")
+
+file <- tempfile()
+write.csv(data.frame(a=c('"test".1,1', '"test".2,2'), b=c(0.1, 0.2)),
+   file=file, row.names=FALSE)
+file2 <- tempfile()
+CSVToCSV2(file,file2)
+expect_equal(readLines(file2), c('"a";"b"', '"""test"".1,1";0,1','"""test"".2,2";0,2'))
+
 # Write some exemplary calls to your function here.
+file <- tempfile()
+write.csv(data.frame(a=c('"test".1,1', '"test".2,2'), b=c(0.1, 0.2)),
+   file=file, row.names=FALSE)
+file2 <- tempfile()
+cat(readLines(file), sep="\n")
+# "a","b"
+# """test"".1,1",0.1
+# """test"".2,2",0.2
 
-
-
+CSVToCSV2(file,file2)
+cat(readLines(file2), sep="\n")
+# "a";"b"
+# """test"".1,1";0,1
+# """test"".2,2";0,2
 
 ## ------------------------ Exercise 04.02 ----------------------------
 
 ## ---- Documentation ----
 
 # DESCRIPTION
-# This function changes the sign of each element in a given numeric vector
+# template - processes each file with extension '.tpl'. It looks for all occurances of
+# %name% pattern. If 'name' is a syntactically valid R name then %name% is substituted for its value
+# from given data frame. Moreover there are following predefined names:
+#   %filename% – base name of the file being processed,
+#   %filepath% – full path to the file;
+#   %curtime% – current time (hh:mm:ss);
+#   %curdate% – current date (yyyy-mm-dd).
+# Any other %name% than those mentioned above will not be changed and produce warning.
+# Results are stored as '.txt' files. For each file to be overwritten, warning will be generated.
 #
 # ARGUMENTS
-# x - a numeric vector
+# dirname - single string, name of directory containing '.tpl' files,
+# data - a data frame with two columns: key and value. Each key represents name to be substituted into its
+#     corresponding value.
 #
 # RETURN VALUE
-# a numeric vector, -x
+# function returns invisible(NULL)
 
 ## ---- Function ----
 
-chgsgn <- function(x) # Just an example, TO DO: DEL ME
-{
-   stopifnot(is.numeric(x))
-   -x
+template <- function(dirname, data){
+   library(stringi)
+   stopifnot(is.character(dirname), length(dirname)==1)
+   stopifnot(is.data.frame(data), length(data)==2)
+   stopfifnot(names(data) %in% c("key", "value"))
+   stopifnot(is.character(data[[1]]))
+   stopifnot(is.character(data[[2]]))
+   # check if all the keys are valid
+   stopifnot( all(stri_detect_regex(data$key, "^([a-zA-Z]|[\\.](?![0-9]))[a-zA-Z0-9\\._]*$")) )
+
+   # read names of files
+   fnames <- list.files(dirname, pattern= "*.tpl", full.names=TRUE)
+
+   for(k in seq_along(fnames)){# for each file
+      body <- readLines(input)
+      for(line in seq_along(body)){
+         pos <- stri_locate_all_regex(body[line], "%([a-zA-Z]|[\\.](?![0-9]))[a-zA-Z0-9\\._]*%")[[1]]
+         if (is.na(pos[1,1])) next
+         for(found in 1:dim(pos)[1]){
+            name <- substr(body[line], pos[found,1]+1, pos[found,2]-1)
+            if ( any(data$key == name) ){
+
+            }else if (data$key == "filename"){}
+            else if (data$key == "filepath"){}
+            else if (data$key == "curtime"){}
+            else if (data$key == "curdate"){}
+            else{ # warning!
+            }
+            #Sys.Date()
+            #substr(Sys.time(),12,19)
+            #basename( fnames[k])
+            #dirname( fnames[k])
+         }
+      }
+
+   }
+
 }
 
 ## ---- Examples ----
 
-# Just a bunch of examples, TO DO: DEL ME
 # tests:
 library(testthat)
-expect_identical(chgsgn(numeric(0)), numeric(0))
-expect_error(chgsgn(mean))
-expect_equivalent(chgsgn(c(-1,2,3)), c(1,-2,-3))
-expect_equivalent(chgsgn(c(-1,2,NA)), c(1,-2,NA))
-test <- rnorm(10)
-expect_equivalent(chgsgn(test), -test)
-# ...
+
+dir <- tempdir()
+f1 <- tempfile(fileext = ".tpl")
+sink(f1)
+cat("Plik: %filename%\nW katalogu: %filepath%\nala\nma\nkota %imie% \na\nkot %.1imie% \nma\nale\n%curtime%\n%curdate%\n")
+sink()
+cat(readLines(f1), sep="\n")
+
+f2 <- tempfile(fileext = ".tpl")
+f3 <- tempfile(fileext = ".tpl")
+
 
 # examples:
-chgsgn(rnorm(10)) # some random data
+
 
 
 
