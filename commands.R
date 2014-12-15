@@ -1331,7 +1331,7 @@ df
        matrix(11:14, ncol=2)
   )
 ),
-class="data.frame", names="c1", row.names=c("r1", "r2") 
+class="data.frame", names="c1", row.names=c("r1", "r2")
 ))
 
 (survey <- data.frame(
@@ -1381,11 +1381,11 @@ survey[1:2, 3:4]
 as.matrix(survey)
 # automatic conversion to the broadest type:
 # gender coffee  time weight
-# [1,] "m"    "FALSE" "23" "69"  
-# [2,] "m"    " TRUE" "25" "71"  
-# [3,] "f"    " TRUE" "31" "58"  
-# [4,] "m"    "FALSE" "46" "98"  
-# [5,] "f"    " TRUE" "24" "63"  
+# [1,] "m"    "FALSE" "23" "69"
+# [2,] "m"    " TRUE" "25" "71"
+# [3,] "f"    " TRUE" "31" "58"
+# [4,] "m"    "FALSE" "46" "98"
+# [5,] "f"    " TRUE" "24" "63"
 # [6,] "f"    "FALSE" "38" "41"
 
 # when data frame is created, character data is automatically converted to factor
@@ -1436,8 +1436,8 @@ rbind(survey, data.frame(gender = "m", coffee = TRUE, time = 41, weight = 98,
                          row.names = "Steinar"))
 
 sapply(survey, class) # class of each column (it's a list...)
-# gender    coffee      time    weight 
-# "factor" "logical" "numeric" "numeric" 
+# gender    coffee      time    weight
+# "factor" "logical" "numeric" "numeric"
 tapply(survey$time, survey$gender, mean) # avg time / each gender
 
 # See also: ?aggregate, ?by, ?ave
@@ -1487,7 +1487,7 @@ sgn <- function(x) {
 
 # !
 if (NA) cat("!")
-# Błąd wif (NA) cat("!") : 
+# Błąd wif (NA) cat("!") :
 #   brakuje wartości tam, gdzie wymagane jest TRUE/FALSE
 
 # careful - you cannot put if and else in different lines in console
@@ -1703,8 +1703,8 @@ stri_sub(x, -3) <- "AES"; x
 stri_trim_both("\t abc\n ")
 ## [1] "abc"
 cat(stri_pad_both(c("abc", "defghij"), 20), sep = "\n")
-#       abc         
-#     defghij 
+#       abc
+#     defghij
 
 stri_rand_shuffle("abcdefghi")
 ## [1] "fhdbgciea"
@@ -1942,7 +1942,7 @@ stri_replace_first_regex("   test   ","^\\p{White_space}*(.*?)\\p{White_space}*$
 #   • (?<!. . . ) Negative Look-behind assertion
 # True if the parenthesized pattern does not match text preceding the current input position, with the last
 # character of the match being the input character just before the current position. Does not alter the input
-# position. The length of possible strings matched by the look-behind pattern must not be unbounded 
+# position. The length of possible strings matched by the look-behind pattern must not be unbounded
 # (no * or + operators.)
 
 # Match an email:
@@ -2074,4 +2074,39 @@ seq(as.Date("2014-01-01"), sysDate, length.out = 4)
 # See also: quantile(), cut(), round(), hist(), . . . .
 
 
+#### File operations:
 
+getwd()
+normalizePath("commands.R")
+normalizePath("nie_istnieje.R")
+normalizePath("~")
+
+basename(normalizePath("commands.R"))
+dirname(normalizePath("commands.R"))
+
+file.exists("commands.R")
+file.path(dirname(normalizePath("commands.R")), basename(normalizePath("commands.R")))
+?file.choose
+
+tempdir()
+tempfile()
+
+setwd("some_path")
+
+file.info("commands.R")
+file.access("commands.R",1)
+file.access("commands.R",2)
+file.access("commands.R",4)
+
+##others:
+
+?file.create
+?dir.create
+?file.remove
+?file.rename
+?unlink
+?file.copy
+?file.append
+?download.file
+
+list.files("~/Research/Classes/Rprogramming/", pattern = "\\.R", recursive = TRUE)
