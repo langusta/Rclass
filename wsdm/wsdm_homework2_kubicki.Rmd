@@ -25,19 +25,15 @@ The answer from algorithm 2:
 • report results in the form of working, roughly documented code with the input set;
 • you are free to choose your favourite programming language.
 
-I used documents from following database: http://ai.stanford.edu/~amaas/data/sentiment/
-It provides you with documents divided into train and test sets. In each of them you have film reviews labeled as:
+I used documents from following database: http://ai.stanford.edu/~amaas/data/sentiment/ . It provides you with documents divided into train and test sets. In each of them you have film reviews labeled as:
 
 - positive - a review with rating equal or greater then 7 (maximum is 10),
 - negative - a review with rating less or equal to 4.
 
-It is also possible to derive the exact rating (number between 1 and 10) from the name of each
-document. Note that reviews with ratings 5 or 6 were not included in the database (actually they were included, but only in the unsupervised learning database).
-
 From the aforementioned database I have randomly selected:
 
-- 8000 training examples (4000 positive and 4000 negative),
+- 4000 training examples (2000 positive and 2000 negative),
 - 2000 test examples (1000 positive and 1000 negative).
 
-
+Nextly, I have trained naive Bayes classifier and checked its performance (see wsdm_homework2_naiveBayesCode_kubicki.pdf). I got 0.8065 accuracy.
 
