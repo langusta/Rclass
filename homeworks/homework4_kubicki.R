@@ -125,7 +125,7 @@ template <- function(dirname, data){
    library(stringi)
    stopifnot(is.character(dirname), length(dirname)==1)
    stopifnot(is.data.frame(data), length(data)==2)
-   stopfifnot(names(data) %in% c("key", "value"))
+   stopifnot(names(data) %in% c("key", "value"))
    stopifnot(is.character(data[[1]]))
    stopifnot(is.character(data[[2]]))
    # check if all the keys are valid
@@ -135,27 +135,28 @@ template <- function(dirname, data){
    fnames <- list.files(dirname, pattern= "*.tpl", full.names=TRUE)
 
    for(k in seq_along(fnames)){# for each file
-      body <- readLines(input)
+      body <- readLines(fnames[k])
       for(line in seq_along(body)){
-         pos <- stri_locate_all_regex(body[line], "%([a-zA-Z]|[\\.](?![0-9]))[a-zA-Z0-9\\._]*%")[[1]]
-         if (is.na(pos[1,1])) next
-         for(found in 1:dim(pos)[1]){
-            name <- substr(body[line], pos[found,1]+1, pos[found,2]-1)
-            if ( any(data$key == name) ){
 
-            }else if (data$key == "filename"){}
-            else if (data$key == "filepath"){}
-            else if (data$key == "curtime"){}
-            else if (data$key == "curdate"){}
-            else{ # warning!
-            }
-            #Sys.Date()
-            #substr(Sys.time(),12,19)
-            #basename( fnames[k])
-            #dirname( fnames[k])
+         for(knum in seq_along(data$key)){
+            body[line] <- stri_replace_all_fixed(body[line],
+                           paste("%",data$key[knum],"%",sep=""),
+                           data$value[knum]
+                        )
+         }
+         body[line] <- stri_replace_all_fixed(body[line],"%filename%", basename( fnames[k]))
+         body[line] <- stri_replace_all_fixed(body[line],"%filepath%", dirname( fnames[k]))
+         body[line] <- stri_replace_all_fixed(body[line],"%curtime%", substr(Sys.time(),12,19))
+         body[line] <- stri_replace_all_fixed(body[line],"%curdate%", as.character(Sys.Date()))
+
+         pos <- stri_locate_all_regex(body[line], "%([a-zA-Z]|[\\.](?![0-9]))[a-zA-Z0-9\\._]*%")[[1]]
+
+         if (!is.na(pos[1,1])){ # there are some strings of the form %name% left - rise warning
+            warning("template: There are some unresolved %name% strings!")
          }
       }
-
+      # write the output
+      writeLines(body, stri_replace_last_fixed(fnames[k], "tpl", "txt"))
    }
 
 }
@@ -164,21 +165,44 @@ template <- function(dirname, data){
 
 # tests:
 library(testthat)
+expect_error(template(11,data.frame(key = "imie", value = "Jurek",stringsAsFactors = FALSE))) #wrong directory
+expect_error(template(tempdir(),data.frame(asd = "imie", value = "Jurek",stringsAsFactors = FALSE))) #wrong column name in data frame
+expect_error(template(tempdir(),data.frame(key = ".1imie", value = "Jurek",stringsAsFactors = FALSE))) #wrong key value
+
 
 dir <- tempdir()
 f1 <- tempfile(fileext = ".tpl")
 sink(f1)
+# in the following file - %.1imie% doesn't have valid R name, so it is not detected at all!
 cat("Plik: %filename%\nW katalogu: %filepath%\nala\nma\nkota %imie% \na\nkot %.1imie% \nma\nale\n%curtime%\n%curdate%\n")
 sink()
-cat(readLines(f1), sep="\n")
-
+#cat(readLines(f1), sep="\n")
 f2 <- tempfile(fileext = ".tpl")
-f3 <- tempfile(fileext = ".tpl")
+sink(f2)
+# in the following fille %nazwisko% should rise warning!
+cat("Plik: %filename%\nW katalogu: %filepath%\nala\nma\nkota %imie% \na\nkot %nazwisko% \nma\nale\n%curdate%\n")
+sink()
+#cat(readLines(f2), sep="\n")
 
+expect_warning(template(tempdir(),data.frame(key = "imie", value = "Jurek",stringsAsFactors = FALSE)),
+      "template: There are some unresolved %name% strings!")
+f1_out_body <- readLines(stri_replace_last_fixed(f1,"tpl","txt"))
+f1_out_expect <- c(paste("Plik: ",basename(f1), sep=""),
+      paste("W katalogu: ",dirname(f1), sep=""),
+      "ala","ma", "kota Jurek ", "a", "kot %.1imie% ", "ma", "ale",
+      substr(Sys.time(),12,19),
+      as.character(Sys.Date()) )
+expect_equal(f1_out_body, f1_out_expect)
+f2_out_body <- readLines(stri_replace_last_fixed(f2,"tpl","txt"))
+f2_out_expect <- c(paste("Plik: ",basename(f2), sep=""),
+      paste("W katalogu: ",dirname(f2), sep=""),
+      "ala","ma", "kota Jurek ", "a", "kot %nazwisko% ", "ma", "ale",
+      as.character(Sys.Date()) )
+expect_equal(f2_out_body, f2_out_expect)
 
 # examples:
 
-
+# look into tests above for an examples
 
 
 ## ------------------------ Exercise 04.03 ----------------------------
