@@ -209,16 +209,39 @@ expect_equal(f2_out_body, f2_out_expect)
 
 ## ---- Documentation ----
 
-# I don't know how to solve this exercise. :(
+# DESCRIPTION
+# BibTeX2data.frame - converts given BibTeX file int data frame. Each row represents one BibTeX entry.
+# Colums:
+#  type - type of BibTeX entry,
+#  id - id of BibTeX entry
+#  ... - a column for each field extracted from the file (fields are of the field=value form)
+#
+# ARGUMENTS
+# filename - single string, name of the BibTeX file.
+#
+# RETURN VALUE
+# a data frame with converted BibTeX file.
 
 ## ---- Function ----
 
-# I don't know how to solve this exercise. :(
+BibTeX2data.frame <- function(filename){
+   stopifnot(is.character(filename), length(filename)==1)
+
+   input <- file(filename, open="r")
+
+   while (length(line <- readLines(input, n=1)) > 0){
+
+
+   }
+   close(input)
+}
 
 ## ---- Examples ----
 
-# I don't know how to solve this exercise. :(
+# tests:
+library(testthat)
 
+#examples:
 
 
 
