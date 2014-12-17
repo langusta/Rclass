@@ -17,6 +17,7 @@ for (k in 1:l){
    means[k] <- mean(sample(x, n))
 }
 
+# http://stackoverflow.com/questions/7781798/seeing-if-data-is-normally-distributed-in-r
 #hist(means)
 qqnorm(means)
 qqline(means)
