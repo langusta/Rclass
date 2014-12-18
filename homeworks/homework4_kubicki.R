@@ -50,8 +50,8 @@ CSVToCSV2 <- function(infname, outfname){
       parts<-stri_split_fixed(x,'"')[[1]]
       # every second element of parts needs to be changed
 
-      parts[seq(from=1, to= length(parts), by =2)] <- stri_replace_all_fixed(parts[seq(from=beg, to= length(parts), by =2)], ",", ";")
-      parts[seq(from=1, to= length(parts), by =2)] <- stri_replace_all_fixed(parts[seq(from=beg, to= length(parts), by =2)], ".", ",")
+      parts[seq(from=1, to= length(parts), by =2)] <- stri_replace_all_fixed(parts[seq(from=1, to= length(parts), by =2)], ",", ";")
+      parts[seq(from=1, to= length(parts), by =2)] <- stri_replace_all_fixed(parts[seq(from=1, to= length(parts), by =2)], ".", ",")
 
       writeLines(paste(parts,collapse = '"'), output)
 
@@ -85,13 +85,13 @@ file <- tempfile()
 write.csv(data.frame(a=c('"test".1,1', '"test".2,2'), b=c(0.1, 0.2)),
    file=file, row.names=FALSE)
 file2 <- tempfile()
-cat(readLines(file), sep="\n")
+#cat(readLines(file), sep="\n")
 # "a","b"
 # """test"".1,1",0.1
 # """test"".2,2",0.2
 
 CSVToCSV2(file,file2)
-cat(readLines(file2), sep="\n")
+#cat(readLines(file2), sep="\n")
 # "a";"b"
 # """test"".1,1";0,1
 # """test"".2,2";0,2
@@ -225,24 +225,115 @@ expect_equal(f2_out_body, f2_out_expect)
 ## ---- Function ----
 
 BibTeX2data.frame <- function(filename){
+   library(stringi)
    stopifnot(is.character(filename), length(filename)==1)
+   stopifnot(file.exists(filename))
 
    input <- file(filename, open="r")
 
+   cols <- c("type", "id")
+
+   output <- data.frame(type =character(), id =character() )
+
    while (length(line <- readLines(input, n=1)) > 0){
+      if ( is.na(stri_match_first_regex(line,"@[a-zA-Z0-9]+\\{[a-zA-Z0-9]+,"))) next
 
+      type <- stri_extract_first_regex(line, "(?<=@)[a-zA-Z0-9]+(?=\\{)")
+      id <- stri_extract_first_regex(line, "(?<=\\{)[a-zA-Z0-9]+(?=,)")
+      row <- output[1,]
+      row[1,] <- NA
+      row$type <- type
+      row$id <- id
+      n <- 0
+      lines <- character(0)
+      while (length(line <- readLines(input, n=1)) > 0){
+         if( stri_trim_both(line) == "}" ) break # finish reading
+         n<-n+1
+         lines[n] <- line
+      }
+      for(k in 1:n){
+         if ( is.na(stri_match_first_regex(lines[k],"="))) next
+         name <- stri_extract_first_regex (lines[k], "[^=\\s]+(?=\\s*?=)")
+         value <- stri_extract_last_regex (lines[k], "(?<=[\\{\\\"']).+(?=[\\}\\\"']),?")
 
+         if ( ! (name %in% cols) ) {
+            cols <- c(cols, name)
+            if(length(output$type) == 0){
+               output <- data.frame(output, .noname = character(0))
+               names(output)[length(output)] <- name
+            }else
+               output[,name] <- NA
+            row[,name] <- NA
+         }
+
+         row[1, name]<- value
+
+         #print(name)
+         #print(value)
+      }
+      output<-rbind(output, row)
    }
    close(input)
+   rownames(output)<-NULL
+   output
 }
 
 ## ---- Examples ----
 
 # tests:
 library(testthat)
+expect_error(BibTeX2data.frame(11)) # expected filename
+expect_error(BibTeX2data.frame("file1")) # file does  not exist
+
+f1 <- tempfile()
+sink(f1)
+cat(paste(
+   "@article{paper1,",
+   "   author={J.Kowalski and Y.Wu},",
+   "   journal={Journal of Interesting Issues},",
+   "   title={P = NP},",
+   "   year={1999}",
+   "}",
+   "",
+   "@book{xyz,",
+   '   author="G. Schmidt",',
+   '   publisher="PWN",',
+   "   year={2013},",
+   "   title={A general theory of everything},",
+   "}",
+   "",
+   "@testType{testId,",
+   '   author="G. Schmidt",',
+   '   publisher="PWN",',
+   "   ala,",
+   "   year={2013},",
+   "   title={A general theory of everything},",
+   "}",
+   "",
+   "@article{paper2,",
+   "   author={J.Kowalski and Y.Wu},",
+   "   year={3002}",
+   "}",
+   "\n",
+   sep ="\n")
+   )
+sink()
+#cat(readLines(f1), sep="\n")
+expect_equal(BibTeX2data.frame(f1),
+   data.frame(
+      type=c("article", "book", "testType", "article"),
+      id = c("paper1", "xyz","testId", "paper2"),
+      author = c("J.Kowalski and Y.Wu","G. Schmidt","G. Schmidt","J.Kowalski and Y.Wu"),
+      journal = c("Journal of Interesting Issues", NA, NA, NA),
+      title = c("P = NP", "A general theory of everything", "A general theory of everything", NA),
+      year = c("1999", "2013", "2013", "3002"),
+      publisher = c(NA, "PWN", "PWN", NA),
+      stringsAsFactors = FALSE
+   )
+)
 
 #examples:
-
+# BibTeX2data.frame("path/to/BibTeX/file")
 
 
 ## ------------------------ Exercise 04.04 ----------------------------

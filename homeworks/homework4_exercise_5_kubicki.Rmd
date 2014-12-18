@@ -1,0 +1,20 @@
+---
+title: "Colors in R"
+author: "Karol Kubicki"
+date: "18.12.2014"
+output: pdf_document
+---
+
+Below you can see how each of the colors returned by _colors()_ function looks like.
+
+
+```{r, echo=FALSE}
+c <- colors()
+for (k in seq_along(c)){
+   plot.new()
+   par(pin = c(6.5,0.25))
+   plot.window(xlim = c(0,10), ylim = c(0,2))
+   rect(0,0,10,2,col = c[k])
+   text(5,1, c[k], col = c[1+ (k+300)%%length(c) ])
+}
+```
