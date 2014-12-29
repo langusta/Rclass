@@ -2,7 +2,7 @@
 values <- 0:9
 prob <- c(40,100,15,5,2,1,1,1,1,1)
 prob <- prob/sum(prob)
-N <- 1000000
+N <- 3000000
 
 x<- numeric(0)
 for (k in seq_along(values)){
