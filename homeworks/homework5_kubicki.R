@@ -34,8 +34,6 @@
 
 ## ---- Function ----
 
-
-
 Rcpp::cppFunction('
    int lcs(const NumericVector v,
            const NumericVector w){
@@ -251,13 +249,9 @@ naomit(c(1,NA,2,NA,3,NA))
 # ARGUMENTS
 # x - a numeric vector,
 # k - length of random subvector to be generated, 0 <= k <= length(x)
-# seed - OPTIONAL - seed for random number generator, 
-#     Possible seed values are:
-#       -1 - then srand(time(NULL)) is used,
-#       0,1,2,3,4,... - then srand(seed) is used.
 #
 # RETURN VALUE
-# random subvector
+# numeric vector with random subvector
 
 ## ---- Function ----
 
@@ -265,14 +259,10 @@ Rcpp::cppFunction('
 NumericVector sample2(const NumericVector x, int k, int seed = -1){
   if(k>x.size()) stop("SAMPLE2 ERROR: k greater than length of x");
   if(k<0) stop("SAMPLE2 ERROR: negative k");
-  if (seed < -1) stop("SAMPLE2 ERROR: wrong seed (should be seed = -1, 0, 1, 2, 3...)");
-
-  if (seed == -1) srand(time(NULL));
-  else srand(seed);
 
   NumericVector perm = Rcpp::clone(x);
   for(int i=0; i<k; ++i){
-    int r = rand()%(perm.size()-i);
+    int r = (int) Rf_runif(0.0, (perm.size()-i)*1.0);
     double swap = perm[i];
     perm[i] = perm[i+r];
     perm[i+r] = swap;
@@ -291,40 +281,57 @@ library(testthat)
 expect_error(sample2(c(1,2), -1))
 expect_error(sample2(c(1,2), 3))
 expect_equivalent(sample2(integer(0), 0), numeric(0))
-expect_equivalent(sample2(c(1,2), 2, 1), c(2,1))
-expect_equivalent(sample2(c(1,2,3,4,5), 2, 1), c(4,1))
-
+set.seed(123)
+expect_equivalent(sample2(c(1,2), 2), c(1,2))
+set.seed(123)
+expect_equivalent(sample2(c(1,2,3,4,5), 2), c(2,5))
 
 # examples:
 sample2(c(1,2),2)
 sample2(c(1,2,3,4,5), 2) 
-sample2(c(1,2,3,4,5), 2, 1)
 
 ## ------------------------ Exercise 05.05 ----------------------------
 
 ## ---- Documentation ----
 
-# ... TO DO ...
-
-
+# DESCRIPTION
+# randperm() generates random permutation of given numeric vector
+#
+# ARGUMENTS
+# x - a numeric vector,
+#
+# RETURN VALUE
+# numeric vector with random permutation
 
 ## ---- Function ----
 
-# ... TO DO ...
-
-
+Rcpp::cppFunction('
+NumericVector randperm(const NumericVector x){
+  NumericVector perm = Rcpp::clone(x);
+  for(int i=0; i<perm.size(); ++i){
+    int r = (int) Rf_runif(0.0, (perm.size()-i)*1.0);
+    double swap = perm[i];
+    perm[i] = perm[i+r];
+    perm[i+r] = swap;
+  }
+  return perm;
+}
+')
 
 ## ---- Examples ----
 
-# ... TO DO ...
+# tests
+library(testthat)
+expect_equivalent(randperm(integer(0)), numeric(0))
+set.seed(123)
+expect_equivalent(randperm(1:3), c(1,3,2))
+set.seed(123)
+expect_equivalent(randperm(1:10), c(3,9,6,10,4,1,2,5,8,7))
 
-
-
-
-
-
-
-
+# examples:
+randperm(integer(0))
+randperm(1:3)
+randperm(1:10)
 
 ## ------------------------ Exercise 05.06 ----------------------------
 
