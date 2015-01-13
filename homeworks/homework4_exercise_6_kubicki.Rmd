@@ -1,12 +1,48 @@
 ---
 title: "Preliminary Analysis"
 author: "Karol Kubicki"
-date: "18.12.2014"
+date: "29.12.2014"
 output: pdf_document
 ---
 
-```{r, echo=FALSE}
-plot(cars)
+In this document you can find a preliminary analysis of the dataset presented below.
+
+
+```{r}
+input <- MASS::Cars93
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Input consists of following columns:
+
+```{r, echo=FALSE}
+names(input)
+```
+
+Let's analyze each of them (numeric or character columns) one by one.
+
+```{r, comment=NA}
+library(knitr)
+for(col in names(input)){
+   if(is.numeric(input[,col])){
+      plot.new()
+      print(" ", quote = FALSE)
+      hist(input[,col], main = col, xlab = NA)
+      plot.new()
+      print(" ", quote = FALSE)
+      boxplot(input[,col], main = col, xlab = NA) 
+      print(kable(as.data.frame(as.list(summary(input[,col]))), caption = col))
+      
+   } else if (is.character(input[, col]) || is.factor(input[, col]) ){
+      plot.new()
+      print(" ", quote = FALSE)
+      pie(summary(input[,col]), main = col, xlab = NA)
+      plot.new()
+      print(" ", quote = FALSE)
+      par(mai=c(1,2,1,1))
+      barplot(summary(input[,col]), main = col, xlab = NA, horiz = TRUE, las=1)
+      print(kable(data.frame(count = summary(as.factor(input[,col])),
+                  percentage = 100*summary(as.factor(input[,col]))/length(input[,col])
+               ), caption = col))
+   }
+}
+```
