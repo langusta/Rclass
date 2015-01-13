@@ -86,26 +86,82 @@ lcs(        c(1,1,1,2,8),
 ## ---- Documentation ----
 
 # DESCRIPTION
-# This function changes the sign of each element in a given numeric vector
+# sortedmerge() merges two already sorted (nonincreasingly or nondecreasingly)
+# numeric vectors into one, sorted vector.
 #
 # ARGUMENTS
-# x - a numeric vector
+# x, y - numeric vectors, both sorted nonincreasingly or nondecreasingly
 #
 # RETURN VALUE
-# a numeric vector, -x
+# a sorted, numeric vector which is the result of merging input vectors
 
 ## ---- Function ----
 
 # just an example, TO DO: DEL ME
-Rcpp::cppFunction('
-   NumericVector chgsgn(NumericVector x) {
-      NumericVector y = Rcpp::clone(x);
-      int n = y.size();
-      for (int i=0; i<n; ++i)
-         if (!NumericVector::is_na(y[i]))
-            y[i] = -y[i];
-      return y;
-   }
+Rcpp::sourceCpp(code='
+#include<Rcpp.h>
+using namespace Rcpp ;
+
+int checkOrder(const NumericVector x){
+  int tryb = 0;
+  // tryb == -1 means that table is not sorted
+  // tryb == 0 means that all elements are equal,
+  // tryb == 1 means non decreasing order, 
+  // tryb == 2 means non increasing order
+  for(int i=1; i<x.size(); ++i){
+    if(x[i]>x[i-1]) {
+      if (tryb == 0) tryb = 1;
+      else if (tryb == 2) return -1;
+    }else if (x[i]<x[i-1]){
+      if (tryb == 0) tryb = 2;
+      else if (tryb == 1) return -1;
+    }
+  } 
+  return tryb;
+}
+
+//[[Rcpp::export]]
+NumericVector sortedmerge(const NumericVector x,
+                          const NumericVector y) {
+  NumericVector out (x.size()+y.size());
+  int xtryb, ytryb; 
+  
+  // check if x and y are ordered
+  xtryb = checkOrder(x);
+  ytryb = checkOrder(y);
+
+  if (xtryb == -1) stop("SORTEDMERGE: x is not sorted");
+  if (ytryb == -1) stop("SORTEDMERGE: y is not sorted");
+  if (xtryb >0 and ytryb >0 and xtryb!=ytryb) stop("SORTEDMERGE: x and y are in different orders!"); // both should be in the same order
+
+  int tryb = (xtryb>ytryb)?xtryb:ytryb;
+
+  for (int i=0, j=0; i<x.size() or j<y.size() ;){
+    if (i<x.size() and j<y.size()){
+      switch(tryb){
+        case 0:
+          out[i+j] = x[i]; ++i;
+        break;
+        case 1:
+          if (x[i]<y[j]) {out[i+j] = x[i]; ++i;}
+          else {out[i+j] = y[j]; ++j;}
+        break;
+        case 2:
+          if (x[i]>y[j]) {out[i+j] = x[i]; ++i;}
+          else {out[i+j] = y[j]; ++j;}
+        break;
+      }
+    }else if (i>=x.size()){
+      out[i+j] = y[j];
+      ++j;
+    }else{ // j>=y.size()
+      out[i+j] = x[i];
+      ++i;
+    }
+  }
+     
+  return out;
+}
 ')
 
 ## ---- Examples ----
@@ -113,16 +169,33 @@ Rcpp::cppFunction('
 # Just a bunch of examples, TO DO: DEL ME
 # tests:
 library(testthat)
-expect_identical(chgsgn(numeric(0)), numeric(0))
-expect_error(chgsgn(mean))
-expect_equivalent(chgsgn(c(-1,2,3)), c(1,-2,-3))
-expect_equivalent(chgsgn(c(-1,2,NA)), c(1,-2,NA))
-test <- rnorm(10)
-expect_equivalent(chgsgn(test), -test)
-# ...
-
+# expect_equivalent(checkOrder(c(4,3,2,2,1,2)),-1)
+# expect_equivalent(checkOrder(c(1,2,3,3,4,4,2)),-1)
+# expect_equivalent(checkOrder(c(4,3,2,2,1)),2)
+# expect_equivalent(checkOrder(c(1,2,3,3)),1)
+# expect_equivalent(checkOrder(c(1,1,1)),0)
+# expect_equivalent(checkOrder(c(7)),0)
+# expect_equivalent(checkOrder(integer(0)),0)
+expect_error(sortedmerge(c(1,2),c(2,1))) # x and y in different orders
+expect_error(sortedmerge(c(1,2),c(1,1,2,1))) # y is not sorted
+expect_error(sortedmerge(c(2,1,2),c(1,1,0))) # x is not sorted
+expect_equivalent(sortedmerge(integer(0),c(3,5,6)), c(3,5,6))
+expect_equivalent(sortedmerge(c(6,5,3),integer(0)), c(6,5,3))
+expect_equivalent(sortedmerge(c(1), integer(0)), c(1))
+expect_equivalent(sortedmerge(integer(0), c(2)), c(2))
+expect_equivalent(sortedmerge(c(1), c(2)), c(1,2))
+expect_equivalent(sortedmerge(c(1,1,1), c(2,1,0)), c(2,1,1,1,1,0))
+expect_equivalent(sortedmerge(c(1,1,1), c(2,2,2)), c(1,1,1,2,2,2))
+expect_equivalent(sortedmerge(c(2,2,2), c(1,1,1)), c(2,2,2,1,1,1))
+expect_equivalent(sortedmerge(c(1,4),c(3,5)), c(1,3,4,5))
+expect_equivalent(sortedmerge(c(1,1,4,17),c(3,3,4,5)), c(1,1,3,3,4,4,5,17))
+                  
 # examples:
-chgsgn(rnorm(10)) # some random data
+sortedmerge(c(1,4),c(3,5))
+
+# when both input vectors are constant they are output to ouput vector in input order
+sortedmerge(c(1,1,1), c(2,2,2))
+sortedmerge(c(2,2,2), c(1,1,1))
 
 
 ## ------------------------ Exercise 05.03 ----------------------------
