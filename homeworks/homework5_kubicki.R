@@ -166,7 +166,6 @@ NumericVector sortedmerge(const NumericVector x,
 
 ## ---- Examples ----
 
-# Just a bunch of examples, TO DO: DEL ME
 # tests:
 library(testthat)
 # expect_equivalent(checkOrder(c(4,3,2,2,1,2)),-1)
@@ -202,44 +201,104 @@ sortedmerge(c(2,2,2), c(1,1,1))
 
 ## ---- Documentation ----
 
-# I don't know how to solve this exercise. :(
+# DESCRIPTION
+# naomit() removes all missing values from given numeric vector
+#
+# ARGUMENTS
+# x - a numeric vector
+#
+# RETURN VALUE
+# a numeric vector with missing values removed
+
 
 ## ---- Function ----
 
-# I don't know how to solve this exercise. :(
+Rcpp::cppFunction('
+NumericVector naomit(const NumericVector x){
+  int l=0;
+  for(int i=0; i<x.size(); ++i){
+    if (!NumericVector::is_na(x[i])) ++l;
+  }
+  NumericVector out(l);
+  l=0;
+  for(int i=0; i<x.size(); ++i){
+    if (!NumericVector::is_na(x[i])) out[l++]=x[i];
+  }
+  return out;
+}
+')
 
 ## ---- Examples ----
 
-# I don't know how to solve this exercise. :(
+# tests
+library(testthat)
+expect_equivalent(naomit(c(1,2,3)), c(1,2,3))
+expect_equivalent(naomit(c(1,NA,2,NA,3,NA)), c(1,2,3))
+expect_equivalent(naomit(c(NA,NA,NA)), integer(0))
+expect_equivalent(naomit(c(NA,NA,7,NA,NA)), 7)
 
-
-
+# examples:
+naomit(c(1,2,3))
+naomit(c(1,NA,2,NA,3,NA))
 
 ## ------------------------ Exercise 05.04 ----------------------------
 
 ## ---- Documentation ----
 
-# ... TO DO ...
-
-
+# DESCRIPTION
+# sample2() generates random subvector of length k of input vector
+#
+# ARGUMENTS
+# x - a numeric vector,
+# k - length of random subvector to be generated, 0 <= k <= length(x)
+# seed - OPTIONAL - seed for random number generator, 
+#     Possible seed values are:
+#       -1 - then srand(time(NULL)) is used,
+#       0,1,2,3,4,... - then srand(seed) is used.
+#
+# RETURN VALUE
+# random subvector
 
 ## ---- Function ----
 
-# ... TO DO ...
+Rcpp::cppFunction('
+NumericVector sample2(const NumericVector x, int k, int seed = -1){
+  if(k>x.size()) stop("SAMPLE2 ERROR: k greater than length of x");
+  if(k<0) stop("SAMPLE2 ERROR: negative k");
+  if (seed < -1) stop("SAMPLE2 ERROR: wrong seed (should be seed = -1, 0, 1, 2, 3...)");
 
+  if (seed == -1) srand(time(NULL));
+  else srand(seed);
 
+  NumericVector perm = Rcpp::clone(x);
+  for(int i=0; i<k; ++i){
+    int r = rand()%(perm.size()-i);
+    double swap = perm[i];
+    perm[i] = perm[i+r];
+    perm[i+r] = swap;
+  }
+
+  NumericVector out(k);
+  for(int i=0; i<k; ++i) out[i] = perm[i];
+  return out;
+}
+')
 
 ## ---- Examples ----
 
-# ... TO DO ...
+# tests
+library(testthat)
+expect_error(sample2(c(1,2), -1))
+expect_error(sample2(c(1,2), 3))
+expect_equivalent(sample2(integer(0), 0), numeric(0))
+expect_equivalent(sample2(c(1,2), 2, 1), c(2,1))
+expect_equivalent(sample2(c(1,2,3,4,5), 2, 1), c(4,1))
 
 
-
-
-
-
-
-
+# examples:
+sample2(c(1,2),2)
+sample2(c(1,2,3,4,5), 2) 
+sample2(c(1,2,3,4,5), 2, 1)
 
 ## ------------------------ Exercise 05.05 ----------------------------
 
