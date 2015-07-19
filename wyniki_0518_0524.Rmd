@@ -1,0 +1,278 @@
+---
+title: "Wyniki modeli VW 0518-0524"
+date: "Ostatnia aktualizacja: `r Sys.Date()`"
+author: "Marcin Kosiński"
+runtime: shiny
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
+    number_sections: false
+    fig_width: 12
+    fig_height: 16
+    fig_caption: true
+    keep_md: true
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::docco_linear}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, echo=FALSE}
+library(knitr)
+opts_chunk$set(comment="", message=FALSE, warning = FALSE, tidy.opts=list(keep.blank.line=TRUE, width.cutoff=250),options(width=250), echo=FALSE)
+```
+
+# Porównanie modeli z historią kliknięć i bez
+
+```{r, echo=FALSE, eval=FALSE}
+wyniki_0518_0524 <- read.table("~/bigdataincontent/Boksy/Analizy/vowpal_wabbit/vw_modele_kwietniowe/wyniki_0518_0524_usredniane", quote="\"")
+library(stringi)
+wyniki  <- wyniki_0518_0524
+
+wyniki <- wyniki[,-1]
+
+for( i in 1:nrow(wyniki)){
+  wyniki[i, 5] <- c(2:4)[c(grepl("model2", wyniki[i,1]),
+                         grepl("model3", wyniki[i,1]),
+                         grepl("model4", wyniki[i,1])
+                        )]
+}
+
+for( i in 1:nrow(wyniki)){
+  wyniki[i, 6] <- c("Troll","Normalny", "Normalny_Det")[c(grepl("troll", wyniki[i,1]),
+                         grepl("normalny_wiek", wyniki[i,1]),
+                         grepl("normalny_det", wyniki[i,1])
+                        )]
+}
+
+for( i in 1:nrow(wyniki)){
+  wyniki[i, 7] <- c("Brak","Wszystkie", 
+                    "Pierwsze52", "pewne27")[c(grepl("bez_gust", wyniki[i,1]),
+                         grepl("wszystkie", wyniki[i,1]),
+                         grepl("pierwsze", wyniki[i,1]),
+                         grepl("pewne", wyniki[i,1])
+                        )]
+}
+
+for( i in 1:nrow(wyniki)){
+  wyniki[i, 8] <- c("klastrowanie2",
+                    "klastrowanie3",
+                    "klastrowanie4",
+                    "klastrowanie6",
+                    "klastrowanie7",
+                    "klastrowanie3id",
+                    "klastrowanie5id",
+                    "klastrowanie7id",
+                    "klastrowanie8id",
+                    "kl_tomek")[which.min(!c(grepl("klaster2_", wyniki[i,1]),
+                         grepl("klaster3_", wyniki[i,1], fixed=TRUE),
+                         grepl("klaster4_", wyniki[i,1], fixed=TRUE),
+                         grepl("klaster6_", wyniki[i,1], fixed=TRUE),
+                         grepl("klaster7_", wyniki[i,1], fixed=TRUE),
+                         grepl("klasterid3_", wyniki[i,1], fixed=TRUE),
+                         grepl("klasterid5_", wyniki[i,1], fixed=TRUE),
+                         grepl("klasterid7_", wyniki[i,1], fixed=TRUE),
+                         grepl("klasterid8_", wyniki[i,1], fixed=TRUE),
+                         grepl("tomek", wyniki[i,1])
+                        ))]
+}
+
+
+ wyniki[,9] <- ifelse( grepl("historia", wyniki[,1]), "historia", "bez_historii")
+
+wyniki[, 2]  <- substr(wyniki[,2], start=8, stop=12)
+wyniki[, 3]  <- substr(wyniki[,3], start=3, stop=20)
+wyniki[, 4]  <- substr(wyniki[,4], start=8, stop=20)
+
+names(wyniki) <- c("Nazwa", "Ctr", "N", "error", "kafel", "wiek",
+                   "Gustawy", "Klastrowanie", "Historia")
+
+library(dplyr)
+
+#cbind( which( wyniki$Historia == "bez_historii" ),
+
+idModel <- wyniki %>%
+  filter( Historia == "bez_historii") %>%
+  select( Nazwa ) %>% 
+  .[,1] %>%
+  stri_sub(., from=1, to=stri_length(.)-4) %>%
+  sapply( function(element){
+    which( grepl(element, wyniki$Nazwa) )
+  })%>%t %>% as.data.frame
+
+idModel[,3] <- 1:nrow(idModel)
+
+library(reshape2)
+melt( idModel, "V3") %>%
+  mutate( nRow = value,
+          id = V3) %>%
+  select( id, nRow) -> idModel
+
+wyniki[,10] <- 1:nrow(wyniki)
+names(wyniki)[10] <- "nRow"
+left_join( wyniki, idModel, "nRow") -> wyniki2
+
+wyniki2[,-1] %>%
+  filter( !is.na(id)) %>%
+  reshape(  idvar = "id", direction="wide", timevar = "Historia")  %>% 
+  mutate(Ctr.bez_historii = as.numeric(Ctr.bez_historii),
+         Ctr.historia = as.numeric(Ctr.historia),
+         Klastrowanie = Klastrowanie.historia,
+         wiek = wiek.historia,
+         Gustawy = Gustawy.historia,
+         kafel = as.character(kafel.historia))-> doWizualizacji
+
+
+
+
+
+
+
+save(wyniki, file="~/bigdataincontent/Boksy/Analizy/vowpal_wabbit/vw_modele_kwietniowe/AplikacjeShiny/wyniki_wszystko_usredniane_0518_0524/wyniki_0518_0524_usredniane.rda")
+save(doWizualizacji, file="~/bigdataincontent/Boksy/Analizy/vowpal_wabbit/vw_modele_kwietniowe/AplikacjeShiny/wyniki_wszystko_usredniane_0518_0524/doWizualizacji.rda" )
+
+```
+
+
+
+
+```{r, fig.width=11, fig.height=11}
+load("doWizualizacji.rda")
+library(dplyr)
+library(ggplot2)
+motyw <- theme_bw(base_family = "serif", base_size = 20) +
+  theme(legend.background = element_blank(),
+        legend.key = element_blank(),
+        panel.background = element_blank(),
+        #panel.border = element_blank(),
+        #strip.background = element_blank(),
+        plot.background = element_blank(),
+        #axis.line = element_blank(),
+        #panel.grid = element_blank(),
+        axis.title.x = element_text(vjust=-0.4, size = 18),
+        axis.title.y = element_text(vjust=+1, size = 18),
+        axis.text.x =element_text(size=14),
+        axis.text.y =element_text(size=14)
+        )
+library(wesanderson)
+  ggplot(doWizualizacji %>% filter( kafel == "2") , aes( x = Ctr.bez_historii, y = Ctr.historia, col = Klastrowanie, shape = kafel))+
+  facet_grid(Gustawy~wiek, labeller = label_both)+
+  geom_point(size=3.5) +
+  scale_x_continuous(breaks=seq(2,3.5,0.1)) +
+  scale_y_continuous(breaks=seq(2,3.5,0.1)) +
+  geom_abline(intercept = 0, slope=1) +
+  ylim(2,3.5)+
+  xlim(2,3.5)+
+  ylab("CTR*100 z historią kliknięć") +
+  xlab("CTR*100 bez historii kliknięć") +
+  scale_color_manual(values = c(wes_palette("Darjeeling", n=5)[1:5], wes_palette("Darjeeling2", n=5)[1:5]))+
+  motyw -> g
+  plot(g)
+
+```
+
+
+
+
+
+# Wyniki wszystkich modeli
+
+```{r}
+
+load("wyniki_0518_0524_usredniane.rda")
+library(dplyr)
+library(DT)
+```
+
+
+```{r, out.width=250,out.height=400}
+inputPanel(
+
+      selectInput("gustawy", 
+                   label = "Gustawy",
+                   choices = list( "Brak","Wszystkie", 
+                    "Pierwsze52", "Wybrane27" ),
+                   multiple = TRUE,
+                   selected = list( "Brak","Wszystkie", 
+                    "Pierwsze52", "Wybrane27" )
+              ),
+         selectInput("wiek", 
+                   label = "Wiek",
+                   choices = list( "Troll","Normalny","Normalny_Det" ),
+                   multiple = TRUE,
+                   selected = list( "Troll","Normalny","Normalny_Det" )
+              ),
+         selectInput("klastrowania", 
+                   label = "Klastrowania",
+                   choices = list( "klastrowanie2",
+                    "klastrowanie3",
+                    "klastrowanie4",
+                    "klastrowanie6",
+                    "klastrowanie7",
+                    "klastrowanie3id",
+                    "klastrowanie5id",
+                    "klastrowanie7id",
+                    "klastrowanie8id",
+                    "kl_tomek" ),
+                   multiple = TRUE,
+                   selected = list( "klastrowanie2",
+                    "klastrowanie3",
+                    "klastrowanie4",
+                    "klastrowanie6",
+                    "klastrowanie7",
+                    "klastrowanie3id",
+                    "klastrowanie5id",
+                    "klastrowanie7id",
+                    "klastrowanie8id",
+                    "kl_tomek" )
+              ),
+            selectInput("kafel", 
+                   label = "Kafel",
+                   choices = list( "2","3","4" ),
+                   multiple = TRUE,
+                   selected = list( "2","3","4" )
+              ),
+   
+               selectInput("hist", 
+                   label = "Historia",
+                   choices = list( "historia", "bez_historii" ),
+                   multiple = TRUE,
+                   selected = list( "historia", "bez_historii" )
+              ),
+              checkboxInput(inputId = "Nazwy",
+                  label = strong("Nazwy modeli"),
+                  value = FALSE
+            )
+   
+  )
+
+data <- reactive({
+  wyniki <- wyniki %>%
+    filter( kafel %in% input$kafel,
+            Gustawy %in% input$gustawy,
+            Klastrowanie %in% input$klastrowania,
+            Historia %in% input$hist,
+            wiek %in% input$wiek) %>%
+    select( -nRow)
+  
+  if( input$Nazwy){
+    wyniki
+  }else{
+    wyniki %>%
+      select( -Nazwa )
+  }
+})
+
+renderDataTable(
+  datatable(data(),  
+    options = list(
+      pageLength = 50,
+      lengthMenu = list(c(25, 50, 100,200,400,440), 
+                        c('25', '50', '100','200','400','440'))
+      #                                                           
+    )
+)
+)
+
+```
