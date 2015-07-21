@@ -67,4 +67,20 @@ ggplot(galton, aes(x=rodzic, y=syn))+
   # model 1, wzrost dziecka nei zależy od wzrostu rodzica
   geom_abline(size=2, slope=0, intercept=mean(galton$syn))
 
+galton %>% group_by(rodzic) %>% summarise(avg_diff = mean(rodzic-syn))
 
+model <- lm(syn~rodzic, data = galton)
+model$coefficients[2]
+
+galton %>% group_by(rodzic) %>% summarise(true_mean = mean(syn)) %>%
+  mutate(est_mean = model$coefficients[1] + model$coefficients[2] * rodzic) %>%
+  mutate(diff = 100*abs(true_mean-est_mean)/true_mean)
+
+head(pearson)
+
+model_p <- lm(syn~ojciec, data = pearson)
+
+pearson %>% ggplot(aes(x=ojciec, y=syn)) +
+  geom_smooth(method="lm",size = 2, color = "red", se=FALSE) +
+  geom_point()
+  # geom_point(position = "jitter")
